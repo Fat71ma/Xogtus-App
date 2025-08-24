@@ -8,7 +8,7 @@ A React Native mobile app built with **Expo** and **NativeWind (TailwindCSS for 
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/Fat/Xogtus-App.git
+git clone https://github.com/Fat71ma/Xogtus-App.git
 cd Xogtus-App
 ```
 
