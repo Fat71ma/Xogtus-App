@@ -1,13 +1,26 @@
 import React from "react";
 import { View, TouchableOpacity, Alert } from "react-native";
-import { Bot, Camera, BookImage } from "lucide-react-native";
+import { Bot, Camera, BookImage, Clock } from "lucide-react-native"; 
 import { useColorScheme } from "nativewind";
 import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 
 export default function BottomBar() {
   const { colorScheme } = useColorScheme();
+
+  // Save photo URIs permanently
+  const savePhoto = async (uri: string) => {
+    try {
+      const existing = await AsyncStorage.getItem("savedPhotos");
+      const photos = existing ? JSON.parse(existing) : [];
+      photos.push(uri);
+      await AsyncStorage.setItem("savedPhotos", JSON.stringify(photos));
+    } catch (error) {
+      console.log("Error saving photo:", error);
+    }
+  };
 
   // 📸 Open Camera
   const openCamera = async () => {
@@ -26,10 +39,16 @@ export default function BottomBar() {
 
     if (!result.canceled) {
       const uri = result.assets[0].uri;
+
       await MediaLibrary.createAssetAsync(uri);
+      await savePhoto(uri);
+
       Alert.alert("Saved!", "Photo saved to gallery 📸");
 
-      router.push({ pathname: "/EditScreen", params: { imageUri: uri } });
+      router.push({
+        pathname: "/EditScreen",
+        params: { imageUris: JSON.stringify([uri]) },
+      });
     }
   };
 
@@ -42,19 +61,32 @@ export default function BottomBar() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      allowsEditing: true,
+      allowsEditing: false,
       quality: 1,
+      allowsMultipleSelection: true,
     });
 
     if (!result.canceled) {
-      const uri = result.assets[0].uri;
-    
-      // Save to gallery (optional)
-      await MediaLibrary.createAssetAsync(uri);
-    
-      // Navigate to EditScreen with the photo
-      router.push({ pathname: "/EditScreen", params: { imageUri: uri } });
+      const uris = result.assets.map((asset) => asset.uri);
+
+      for (const uri of uris) {
+        await MediaLibrary.createAssetAsync(uri);
+        await savePhoto(uri);
+      }
+
+      router.push({
+        pathname: "/EditScreen",
+        params: { imageUris: JSON.stringify(uris) },
+      });
     }
+  };
+
+  // 🕒 Go to History (all saved photos)
+  const goToHistory = () => {
+    router.push({
+      pathname: "/EditScreen",
+      params: { imageUris: "[]" }, 
+    });
   };
 
   return (
@@ -77,9 +109,17 @@ export default function BottomBar() {
         </View>
       </TouchableOpacity>
 
-      {/* 🤖 Bot Button (still empty for now) */}
-      <TouchableOpacity>
+      {/* 🤖 Bot Button */}
+      {/* <TouchableOpacity>
         <Bot
+          size={28}
+          color={colorScheme === "dark" ? "#9DC183" : "#228B22"}
+        />
+      </TouchableOpacity> */}
+
+      {/* 🕒 History Button */}
+      <TouchableOpacity onPress={goToHistory}>
+        <Clock
           size={28}
           color={colorScheme === "dark" ? "#9DC183" : "#228B22"}
         />
